@@ -1,10 +1,12 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { Users, Gift, Search, Download, Eye, RefreshCw, ArrowUpRight, ArrowLeft, Loader } from 'lucide-react';
-import { useUser, RedirectToSignIn } from '@clerk/nextjs';
+import { Users, Gift, Search, Download, Eye, RefreshCw, ArrowUpRight, ArrowLeft, Loader, Shield } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 
 const ReferralsPage = () => {
   const { user, isSignedIn, isLoaded } = useUser();
+  
+  // Always call hooks first, before any conditional logic
   const [referralData, setReferralData] = useState([]);
   const [userData, setUserData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -13,18 +15,13 @@ const ReferralsPage = () => {
 
   const isAdmin = isSignedIn && user?.emailAddresses?.[0]?.emailAddress === 'ultrotech1236@gmail.com';
 
-  // Redirect if not admin
-  if (isLoaded && (!isSignedIn || !isAdmin)) {
-    return <RedirectToSignIn />;
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <Loader className="w-8 h-8 text-blue-400 animate-spin" />
-      </div>
-    );
-  }
+  // Always call useEffect hooks
+  useEffect(() => {
+    // Only fetch data if user is loaded and is admin
+    if (isLoaded && isAdmin) {
+      fetchReferralData();
+    }
+  }, [isLoaded, isAdmin]);
 
   const fetchReferralData = async () => {
     setLoading(true);
@@ -39,10 +36,6 @@ const ReferralsPage = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchReferralData();
-  }, []);
 
   const getReferrerDetails = (referralCode) => {
     return userData.find(user => user.userReferralCode === referralCode);
@@ -69,14 +62,6 @@ const ReferralsPage = () => {
         }))
     };
   };
-
-  const stats = getReferralStats();
-
-  const filteredReferrals = referralData.filter(referral =>
-    referral.referredName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    referral.referredEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    referral.referralCode?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const exportData = () => {
     const csvData = referralData.map(referral => {
@@ -105,6 +90,45 @@ const ReferralsPage = () => {
     a.download = `referrals-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
   };
+
+  // Loading state - show before auth is loaded
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <Loader className="w-8 h-8 text-blue-400 animate-spin" />
+      </div>
+    );
+  }
+
+  // Access denied state - show if not signed in or not admin
+  if (!isSignedIn || !isAdmin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8">
+          <Shield className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-white mb-4">Access Denied</h1>
+          <p className="text-white/80 mb-6">
+            You are not authorized to access this page. This section is restricted to administrators only.
+          </p>
+          <a
+            href="/"
+            className="inline-flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Home</span>
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const stats = getReferralStats();
+
+  const filteredReferrals = referralData.filter(referral =>
+    referral.referredName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    referral.referredEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    referral.referralCode?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">

@@ -6,41 +6,23 @@ import { useUser } from '@clerk/nextjs';
 
 const AnalyzePage = () => {
   const { user, isSignedIn, isLoaded } = useUser();
+  
+  // Always call hooks first, before any conditional logic
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [waitlistCount, setWaitlistCount] = useState(0);
 
+  // Calculate admin status
   const isAdmin = isSignedIn && user?.emailAddresses?.[0]?.emailAddress === 'ultrotech1236@gmail.com';
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <Loader className="w-8 h-8 text-blue-400 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <Shield className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-4">Access Denied</h1>
-          <p className="text-white/80 mb-6">
-            You are not authorized to access this page. This section is restricted to administrators only.
-          </p>
-          <a
-            href="/"
-            className="inline-flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Home</span>
-          </a>
-        </div>
-      </div>
-    );
-  }
+  // Always call useEffect hooks
+  useEffect(() => {
+    // Only fetch data if user is loaded and is admin
+    if (isLoaded && isAdmin) {
+      fetchWaitlistData();
+    }
+  }, [isLoaded, isAdmin]);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -149,10 +131,6 @@ const AnalyzePage = () => {
     }
   };
 
-  useEffect(() => {
-    fetchWaitlistData();
-  }, []);
-
   const calculateHypothesisResults = () => {
     if (!data) return {};
     
@@ -198,8 +176,6 @@ const AnalyzePage = () => {
     return results;
   };
 
-  const results = calculateHypothesisResults();
-
   const generateChartData = () => {
     if (!data) return [];
     
@@ -229,6 +205,39 @@ const AnalyzePage = () => {
     a.download = `performance-ai-analysis-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
   };
+
+  // Loading state - show before auth is loaded
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <Loader className="w-8 h-8 text-blue-400 animate-spin" />
+      </div>
+    );
+  }
+
+  // Access denied state - show if not admin
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8">
+          <Shield className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-white mb-4">Access Denied</h1>
+          <p className="text-white/80 mb-6">
+            You are not authorized to access this page. This section is restricted to administrators only.
+          </p>
+          <a
+            href="/"
+            className="inline-flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Home</span>
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const results = calculateHypothesisResults();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
